@@ -10,9 +10,9 @@ docs = [
 dev = [
     { include-group = "runtime" },
     { include-group = "docs" },
-    "coverage[toml]==7.15.4",
+    "coverage[toml]==7.16.0",
     "pip-audit==2.10.1",
-    "ruff==0.16.5",
+    "ruff==0.16.6",
 ]
 
 [tool.coverage.run]
