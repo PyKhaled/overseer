@@ -124,3 +124,7 @@ GitHub Actions runs quality checks, dependency auditing, tests on Python
 pull requests and pushes to `main`. Published GitHub Releases rerun the same
 workflow before publishing a multi-platform image. A scheduled workflow runs
 CodeQL, dependency auditing, and container scanning every Monday.
+
+The service-control regression tests use Node.js 18 or newer and run as part of
+`make test` and `make coverage`. They exercise failed and pending lifecycle
+requests across card replacement without contacting Docker.
