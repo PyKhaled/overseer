@@ -295,7 +295,10 @@
     return active;
   }
 
+  const pendingActions = new Map();
+
   async function action(type, id, button, containerName) {
+    if (pendingActions.has(id)) return;
     if (["stop", "restart"].includes(type)) {
       const confirmed = window.confirm(
         `${type === "stop" ? "Stop" : "Restart"} ${containerName}? This may interrupt dependent services.`
@@ -303,17 +306,9 @@
       if (!confirmed) return;
     }
 
-    const card = button.closest(".card");
-    const buttons = [...card.querySelectorAll("button")];
-    const originalLabel = button.textContent;
-    card.setAttribute("aria-busy", "true");
-    buttons.forEach(item => { item.disabled = true; });
-    button.dataset.pending = "true";
-    button.textContent = {
-      start: "Starting…",
-      restart: "Restarting…",
-      stop: "Stopping…"
-    }[type];
+    if (pendingActions.has(id)) return;
+    pendingActions.set(id, type);
+    renderServices();
 
     try {
       await window.Overseer.requestJson(
@@ -328,9 +323,8 @@
     } catch (error) {
       window.Overseer.showError(error.message, load);
     } finally {
-      card.removeAttribute("aria-busy");
-      button.removeAttribute("data-pending");
-      button.textContent = originalLabel;
+      pendingActions.delete(id);
+      renderServices();
     }
   }
 
@@ -340,7 +334,12 @@
     button.className = type;
     button.dataset.action = type;
     button.textContent = type[0].toUpperCase() + type.slice(1);
-    button.disabled = !isActionAvailable(type, service.status);
+    const pending = pendingActions.get(service.id);
+    button.disabled = Boolean(pending) || !isActionAvailable(type, service.status);
+    if (pending === type) {
+      button.dataset.pending = "true";
+      button.textContent = { start: "Starting…", restart: "Restarting…", stop: "Stopping…" }[type];
+    }
     if (button.disabled) {
       button.title = `${button.textContent} is unavailable while the container is ${service.status || "unknown"}.`;
     }
@@ -363,6 +362,7 @@
     card.id = anchor;
     card.tabIndex = -1;
     card.dataset.containerId = service.id;
+    if (pendingActions.has(service.id)) card.setAttribute("aria-busy", "true");
     card.dataset.service = serviceName;
 
     const heading = document.createElement("div");

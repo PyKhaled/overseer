@@ -48,6 +48,9 @@ jobs:
       - name: Run tests with coverage
         run: coverage run -m unittest discover -s tests -v
 
+      - name: Test browser action state
+        run: node --test tests/*.cjs
+
       - name: Enforce coverage threshold
         run: coverage report
 

@@ -39,10 +39,12 @@ docs-build: check-env ## Build the documentation website and fail on warnings.
 
 test: check-env ## Run the unit test suite.
 	$(VENV_PYTHON) -m unittest discover -s tests -v
+	node --test tests/*.cjs
 
 coverage: check-env ## Run tests and enforce the configured coverage threshold.
 	$(VENV_PYTHON) -m coverage run -m unittest discover -s tests -v
 	$(VENV_PYTHON) -m coverage report
+	node --test tests/*.cjs
 
 lint: check-env ## Check the source with Ruff.
 	$(VENV_PYTHON) -m ruff check .
