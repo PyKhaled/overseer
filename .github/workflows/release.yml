@@ -93,7 +93,7 @@ jobs:
             type=semver,pattern={{version}},value=${{ github.event.release.tag_name }}
             type=semver,pattern={{major}}.{{minor}},value=${{ github.event.release.tag_name }}
             type=semver,pattern={{major}},value=${{ github.event.release.tag_name }},enable=${{ !startsWith(github.event.release.tag_name, 'v0.') }}
-            type=sha,format=long
+            type=sha,format=short
             type=raw,value=latest,enable=${{ !github.event.release.prerelease }}
 
       - name: Build and publish image
