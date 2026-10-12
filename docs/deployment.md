@@ -19,7 +19,8 @@ dependencies are pinned.
 with a valid `vMAJOR.MINOR.PATCH` semantic-version tag is published. The
 release reruns the complete CI workflow before publishing AMD64 and ARM64
 images to `ghcr.io/<owner>/<repository>`. Stable releases receive
-exact-version, major/minor, major, commit-SHA, and `latest` tags. Pre-releases
+exact-version, major/minor, commit-SHA, and `latest` tags, plus a major tag
+for versions 1.0.0 and above. The current release is `0.2.0`. Pre-releases
 never update `latest`. Published images include SBOM and provenance metadata
 and a GitHub artifact attestation.
 

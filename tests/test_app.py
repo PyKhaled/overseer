@@ -448,7 +448,7 @@ class RouteTests(unittest.TestCase):
         response = self.client.get("/healthz")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.get_json(), {"status": "ok"})
+        self.assertEqual(response.get_json(), {"status": "ok", "version": "0.2.0"})
 
     @patch.object(app_module, "get_client")
     def test_services_returns_inspected_containers(self, get_client):

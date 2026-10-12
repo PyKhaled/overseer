@@ -8,6 +8,7 @@ import requests
 from flask import Flask, jsonify, render_template, request
 
 from .operational_api import register_operations
+from .version import __version__
 
 COMPOSE_PROJECT_LABEL = "com.docker.compose.project"
 COMPOSE_SERVICE_LABEL = "com.docker.compose.service"
@@ -389,6 +390,10 @@ def create_app(config=None):
         response.headers["X-Frame-Options"] = "DENY"
         return response
 
+    @application.context_processor
+    def application_version():
+        return {"overseer_version": __version__}
+
     @application.route("/")
     def index():
         return render_template("dashboard.html")
@@ -403,7 +408,7 @@ def create_app(config=None):
 
     @application.route("/healthz")
     def health():
-        return {"status": "ok"}
+        return {"status": "ok", "version": __version__}
 
     @application.route("/api/services")
     def services():

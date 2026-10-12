@@ -69,6 +69,16 @@ if git show-ref --verify --quiet "refs/tags/$release_tag"; then
 fi
 
 release_commit="$(git rev-parse --verify origin/main)"
+bash "$script_directory/check-release-version.sh" "$release_tag" "$release_commit"
+ci_conclusion="$(gh run list --workflow ci.yml --branch main --commit "$release_commit" \
+  --limit 1 --json status,conclusion \
+  --jq '(.[0] // {}) | if .status == "completed" then .conclusion else "pending" end')"
+if [[ "$ci_conclusion" != "success" ]]; then
+  printf 'Error: CI must pass for release commit %s (currently %s).\n' \
+    "$release_commit" "$ci_conclusion" >&2
+  exit 1
+fi
+
 prerelease_args=()
 if [[ "$release_channel" == "prerelease" ]]; then
   prerelease_args+=(--prerelease)

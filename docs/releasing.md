@@ -11,18 +11,22 @@ image to the GitHub Container Registry (GHCR).
   repository.
 - The release commit has been merged into `main`.
 - The CI workflow is passing for that commit.
-- The tag is unused and follows `vMAJOR.MINOR.PATCH`, for example `v1.4.0`.
-  SemVer prerelease suffixes are also accepted, such as `v1.4.0-rc.1`.
+- The tag is unused and follows `vMAJOR.MINOR.PATCH`, for example `v0.2.0`.
+  SemVer prerelease suffixes are also accepted, such as `v0.2.0-rc.1`.
 
 Build-metadata suffixes such as `+build.1` are not accepted because `+` cannot
 be represented faithfully in a Docker tag.
 
-The Git tag is the project's version; there is no separate version field to
-update in the Python package.
+`overseer/version.py` is the canonical application version. Update it before
+releasing; the Git tag must be `v` followed by that exact value. The health
+endpoint and UI use the same value. Local release scripts and the release
+workflow reject mismatches before publication. Container version labels and
+tags are generated from the validated release tag.
 
 ## Prepare the Release
 
-1. Confirm that all changes intended for the release are merged into `main`.
+1. Update `overseer/version.py`, the changelog, pinned image examples, and release
+   task defaults, then merge all intended changes into `main`.
 2. Choose the next version according to [Semantic Versioning](https://semver.org/):
    increment the major version for incompatible changes, the minor version for
    backward-compatible features, or the patch version for fixes.
@@ -49,9 +53,9 @@ then replace the sample version with an unused version:
 ```bash
 git fetch origin main --tags
 RELEASE_COMMIT="$(git rev-parse origin/main)"
-gh release create v1.4.0 \
+gh release create v0.2.0 \
   --target "$RELEASE_COMMIT" \
-  --title "v1.4.0" \
+  --title "v0.2.0" \
   --generate-notes \
   --fail-on-no-commits
 ```
@@ -88,11 +92,11 @@ contained in `main`. It then runs the complete CI workflow. Only after those
 checks pass does it build and push one image manifest supporting `linux/amd64`
 and `linux/arm64`.
 
-For a stable `v1.4.2` release, GHCR receives these tags:
+For a stable `v0.2.0` release, GHCR receives these tags:
 
-- `1.4.2`
-- `1.4`
-- `1` (major tags are omitted for `v0.x.y` releases)
+- `0.2.0`
+- `0.2`
+- Major tags are omitted for `v0.x.y` releases
 - `sha-<full-commit-sha>`
 - `latest`
 
@@ -108,14 +112,14 @@ build provenance, and a GitHub artifact attestation.
 3. Inspect the published multi-platform manifest:
 
    ```bash
-   docker buildx imagetools inspect ghcr.io/pykhaled/overseer:1.4.2
+   docker buildx imagetools inspect ghcr.io/pykhaled/overseer:0.2.0
    ```
 
 4. Pull the immutable version tag on a supported machine before announcing the
    release:
 
    ```bash
-   docker pull ghcr.io/pykhaled/overseer:1.4.2
+   docker pull ghcr.io/pykhaled/overseer:0.2.0
    ```
 
 Use the exact version tag for this check rather than `latest`, especially when

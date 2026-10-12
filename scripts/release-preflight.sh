@@ -39,6 +39,7 @@ if git show-ref --verify --quiet "refs/tags/$release_tag"; then
 fi
 
 release_commit="$(git rev-parse --verify origin/main)"
+bash "$script_directory/check-release-version.sh" "$release_tag" "$release_commit"
 run_details="$(
   gh run list \
     --workflow ci.yml \
@@ -62,6 +63,10 @@ if [[ "$ci_status" != "completed" || "$ci_conclusion" != "success" ]]; then
 fi
 
 printf 'CI passed: %s\n' "$ci_url"
+if [[ "$(git rev-parse HEAD)" != "$release_commit" ]]; then
+  printf 'Error: check out origin/main before running release preflight.\n' >&2
+  exit 1
+fi
 printf 'Running the complete local quality gate...\n'
 make check
 

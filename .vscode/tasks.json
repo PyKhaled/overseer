@@ -211,8 +211,9 @@
   "inputs": [
     {
       "id": "releaseTag",
+      "default": "v0.2.0",
       "type": "promptString",
-      "description": "Release tag (for example v3.0.1)"
+      "description": "Release tag (must match overseer/version.py, currently v0.2.0)"
     },
     {
       "id": "releaseChannel",

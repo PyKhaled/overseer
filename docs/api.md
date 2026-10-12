@@ -20,7 +20,7 @@ Returns the service inspection and lifecycle-controls page.
 
 ### `GET /healthz`
 
-Returns `{"status": "ok"}` without contacting Docker. The container health
+Returns `{"status": "ok", "version": "0.2.0"}` without contacting Docker. The container health
 check and deployment smoke tests use this endpoint.
 
 ## Project Metrics
