@@ -24,7 +24,7 @@
         <h2>Quick start</h2><p>Add Overseer to an existing Compose file, mount the Docker socket, then expose the dashboard on port <code class="b-inline-code">8765</code>.</p>
         <div class="b-code-block" data-code-block><pre><code>services:
   overseer:
-    image: ghcr.io/pykhaled/overseer:latest
+    image: ghcr.io/pykhaled/overseer:0.2.0
     restart: unless-stopped
     ports:
       - "8765:8765"
