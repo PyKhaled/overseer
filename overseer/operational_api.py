@@ -129,8 +129,8 @@ def register_operations(application, client_factory, project_resolver, metrics_r
             after = integer_arg(
                 "after", request.headers.get("Last-Event-ID", 0), 0, 2**63 - 1
             )
-        except ValueError as error:
-            return jsonify({"error": str(error)}), 400
+        except ValueError:
+            return jsonify({"error": "Invalid request parameters"}), 400
         client, project = scoped_client()
         client.close()
         if not monitor.stream_slots.acquire(blocking=False):
