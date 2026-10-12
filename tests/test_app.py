@@ -1,8 +1,11 @@
 import importlib
 import runpy
 import unittest
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event, Lock
+from time import monotonic
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 app_module = importlib.import_module("overseer.app")
 
@@ -123,7 +126,11 @@ class HelperTests(unittest.TestCase):
         self.assertIsNone(metrics["cpu_percent"])
         self.assertIsNone(metrics["memory_usage"])
 
-    def test_build_project_dashboard_aggregates_project_metadata(self):
+    @patch.object(app_module, "sample_container_metrics")
+    def test_build_project_dashboard_aggregates_project_metadata(self, sample):
+        sample.side_effect = lambda container, version: (
+            app_module.inspect_container_metrics(container)
+        )
         container = make_container()
 
         with patch.object(
@@ -151,6 +158,106 @@ class HelperTests(unittest.TestCase):
             100 * 1024 * 1024,
         )
         self.assertEqual(dashboard["services"][0]["name"], "web")
+
+    def test_metrics_budget_returns_partial_results_and_cancels_queued_work(self):
+        containers = [make_container() for _ in range(10)]
+        for index, container in enumerate(containers):
+            container.id = str(index)
+        release = Event()
+        lock = Lock()
+        active = 0
+        peak = 0
+        calls = []
+        good_metrics = app_module.inspect_container_metrics(containers[0])
+
+        def sample(container, version):
+            nonlocal active, peak
+            with lock:
+                calls.append(container.id)
+                active += 1
+                peak = max(peak, active)
+            try:
+                if container.id != "0":
+                    release.wait(5)
+                return good_metrics
+            finally:
+                with lock:
+                    active -= 1
+
+        executor = ThreadPoolExecutor(max_workers=2)
+        try:
+            with patch.object(app_module, "METRICS_EXECUTOR", executor):
+                with patch.object(app_module, "sample_container_metrics", sample):
+                    start = monotonic()
+                    metrics = app_module.collect_project_metrics(
+                        MagicMock(), containers, timeout=0.15
+                    )
+                    self.assertLess(monotonic() - start, 2)
+                    self.assertEqual(metrics["0"], good_metrics)
+                    self.assertIsNone(metrics["9"]["cpu_percent"])
+                    self.assertLessEqual(peak, 2)
+                    self.assertLessEqual(len(calls), 3)
+        finally:
+            release.set()
+            executor.shutdown(wait=True)
+        self.assertLessEqual(len(calls), 3)
+
+    @patch.object(app_module.docker, "from_env")
+    def test_stats_session_has_timeout_preserves_cpu_samples_and_closes(self, factory):
+        container = make_container()
+        client = factory.return_value = Mock()
+        client.api.stats.return_value = container.stats.return_value
+
+        metrics = app_module.sample_container_metrics(container, "1.45")
+
+        factory.assert_called_once_with(timeout=3, version="1.45")
+        client.api.stats.assert_called_once_with(container.id, stream=False)
+        client.close.assert_called_once_with()
+        self.assertEqual(metrics["cpu_percent"], 40.0)
+
+    @patch.object(app_module.docker, "from_env")
+    def test_timed_out_stats_are_unavailable_and_session_closes(self, factory):
+        client = factory.return_value = Mock()
+        client.api.stats.side_effect = app_module.requests.exceptions.ReadTimeout()
+
+        metrics = app_module.sample_container_metrics(make_container(), "1.45")
+
+        self.assertIsNone(metrics["cpu_percent"])
+        client.close.assert_called_once_with()
+
+    @patch.object(app_module.docker, "from_env")
+    def test_failed_stats_client_creation_is_unavailable(self, factory):
+        factory.side_effect = app_module.docker.errors.DockerException("offline")
+        metrics = app_module.sample_container_metrics(make_container(), "1.45")
+        self.assertIsNone(metrics["cpu_percent"])
+
+    @patch.object(app_module, "sample_container_metrics")
+    def test_stopped_containers_do_not_schedule_stats(self, sample):
+        container = make_container()
+        container.status = "exited"
+        metrics = app_module.collect_project_metrics(MagicMock(), [container])
+        self.assertIsNone(metrics[container.id]["cpu_percent"])
+        sample.assert_not_called()
+
+    def test_dashboard_reports_only_successfully_measured_containers(self):
+        first, second = make_container(), make_container()
+        second.id = "second"
+        metrics = {
+            first.id: app_module.inspect_container_metrics(first),
+            second.id: app_module.unavailable_metrics(),
+        }
+        with patch.object(
+            app_module, "list_project_containers", return_value=[first, second]
+        ):
+            with patch.object(app_module, "get_compose_project", return_value="demo"):
+                with patch.object(
+                    app_module, "collect_project_metrics", return_value=metrics
+                ):
+                    dashboard = app_module.build_project_dashboard(MagicMock())
+        self.assertEqual(dashboard["project"]["running"], 2)
+        self.assertEqual(dashboard["resources"]["measured_containers"], 1)
+        self.assertEqual(dashboard["services"][0]["measured_containers"], 1)
+        self.assertEqual(dashboard["resources"]["cpu_percent"], 40.0)
 
     def test_inspect_container_serializes_container_details(self):
         container = make_container()
