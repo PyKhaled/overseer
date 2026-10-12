@@ -189,8 +189,8 @@ def register_operations(application, client_factory, project_resolver, metrics_r
             timestamps = request.args.get("timestamps", "1") == "1"
             if live and download:
                 raise ValueError("Downloads cannot follow a live stream")
-        except ValueError as error:
-            return jsonify({"error": str(error)}), 400
+        except ValueError:
+            return jsonify({"error": "Invalid request parameters"}), 400
         client, project = scoped_client()
         stream = None
         acquired = False
