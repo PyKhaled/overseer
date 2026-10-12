@@ -1,8 +1,10 @@
 import os
 import socket
+from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime, timezone
 
 import docker
+import requests
 from flask import Flask, jsonify, render_template, request
 
 COMPOSE_PROJECT_LABEL = "com.docker.compose.project"
@@ -10,6 +12,19 @@ COMPOSE_SERVICE_LABEL = "com.docker.compose.service"
 COMPOSE_DEPENDS_ON_LABEL = "com.docker.compose.depends_on"
 CSRF_HEADER = "X-Overseer-CSRF"
 CSRF_HEADER_VALUE = "1"
+METRICS_BUDGET_SECONDS = 8
+METRICS_REQUEST_TIMEOUT = 3
+# Shared per Gunicorn worker: repeated requests cannot create unbounded threads.
+METRICS_EXECUTOR = ThreadPoolExecutor(max_workers=4, thread_name_prefix="stats")
+
+
+def unavailable_metrics():
+    return {
+        "cpu_percent": None,
+        "memory_usage": None,
+        "memory_limit": None,
+        "memory_percent": None,
+    }
 
 
 def get_client():
@@ -82,24 +97,17 @@ def get_memory_metrics(stats):
     }
 
 
-def inspect_container_metrics(container):
+def inspect_container_metrics(container, stats_client=None):
     if container.status != "running":
-        return {
-            "cpu_percent": None,
-            "memory_usage": None,
-            "memory_limit": None,
-            "memory_percent": None,
-        }
+        return unavailable_metrics()
 
     try:
-        stats = container.stats(stream=False)
-    except docker.errors.DockerException:
-        return {
-            "cpu_percent": None,
-            "memory_usage": None,
-            "memory_limit": None,
-            "memory_percent": None,
-        }
+        if stats_client is None:
+            stats = container.stats(stream=False)
+        else:
+            stats = stats_client.api.stats(container.id, stream=False)
+    except (docker.errors.DockerException, requests.exceptions.RequestException):
+        return unavailable_metrics()
 
     memory = get_memory_metrics(stats)
     return {
@@ -108,6 +116,43 @@ def inspect_container_metrics(container):
         "memory_limit": memory["limit"],
         "memory_percent": memory["percent"],
     }
+
+
+def sample_container_metrics(container, api_version):
+    # Independent sessions keep worker requests isolated. Reuse the negotiated
+    # API version to avoid another daemon handshake for every sample.
+    stats_client = None
+    try:
+        stats_client = docker.from_env(
+            timeout=METRICS_REQUEST_TIMEOUT, version=api_version
+        )
+        return inspect_container_metrics(container, stats_client)
+    except (docker.errors.DockerException, requests.exceptions.RequestException):
+        return unavailable_metrics()
+    finally:
+        if stats_client is not None:
+            stats_client.close()
+
+
+def collect_project_metrics(client, containers, timeout=METRICS_BUDGET_SECONDS):
+    metrics = {container.id: unavailable_metrics() for container in containers}
+    futures = {
+        METRICS_EXECUTOR.submit(
+            sample_container_metrics, container, client.api.api_version
+        ): container.id
+        for container in containers
+        if container.status == "running"
+    }
+    if not futures:
+        return metrics
+    completed, pending = wait(futures, timeout=timeout)
+    for future in pending:
+        future.cancel()
+    for future in completed:
+        metrics[futures[future]] = future.result()
+    # Do not wait for already-running requests beyond the collection budget.
+    # Their sessions close when their bounded Docker request finishes.
+    return metrics
 
 
 def parse_docker_datetime(value):
@@ -207,6 +252,7 @@ def inspect_container(container):
 def build_project_dashboard(client):
     containers = list_project_containers(client)
     project_name = get_compose_project(client)
+    container_metrics = collect_project_metrics(client, containers)
     service_metrics = {}
     images = set()
     running = 0
@@ -216,7 +262,7 @@ def build_project_dashboard(client):
 
     for container in containers:
         details = inspect_container(container)
-        metrics = inspect_container_metrics(container)
+        metrics = container_metrics[container.id]
         service_name = details["service"]
         service = service_metrics.setdefault(
             service_name,
@@ -228,6 +274,7 @@ def build_project_dashboard(client):
                 "memory_usage": 0,
                 "memory_limit": 0,
                 "metrics_available": False,
+                "measured_containers": 0,
             },
         )
         service["containers"] += 1
@@ -246,6 +293,7 @@ def build_project_dashboard(client):
         images.add(details["image"])
         if metrics["cpu_percent"] is not None:
             service["metrics_available"] = True
+            service["measured_containers"] += 1
             service["cpu_percent"] += metrics["cpu_percent"]
             service["memory_usage"] += metrics["memory_usage"]
             service["memory_limit"] += metrics["memory_limit"]
@@ -288,6 +336,7 @@ def build_project_dashboard(client):
         },
         "resources": {
             "metrics_available": metrics_available,
+            "measured_containers": sum(s["measured_containers"] for s in services),
             "cpu_percent": round(total_cpu, 2),
             "memory_usage": total_memory,
             "memory_limit": total_memory_limit,

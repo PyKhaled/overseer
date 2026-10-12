@@ -378,7 +378,7 @@
       setText("memory-value", formatBytes(resources.memory_usage));
       setText(
         "memory-caption",
-        `${formatBytes(resources.memory_usage)} of ${formatBytes(resources.memory_limit)} across measured running containers`
+        `${formatBytes(resources.memory_usage)} of ${formatBytes(resources.memory_limit)} across ${resources.measured_containers} of ${project.running} running containers`
       );
     } else {
       setText("cpu-value", "Unavailable");
