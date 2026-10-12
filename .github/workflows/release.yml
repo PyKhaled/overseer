@@ -37,6 +37,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Require matching application version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: bash scripts/check-release-version.sh "$RELEASE_TAG"
+
       - name: Require a commit from main
         run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
 

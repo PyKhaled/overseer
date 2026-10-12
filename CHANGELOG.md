@@ -5,67 +5,48 @@ All notable changes to Overseer are documented here. Releases follow
 
 ## Unreleased
 
-## [3.0.0] - 2026-08-22
+## [0.2.0] - 2026-10-12
+
+This release consolidates the previous release numbering into the 0.2 series.
+The previous GitHub releases have been retired; their changes are included here.
 
 ### Added
 
-- Redesigned operational dashboard and service controls with improved
-  accessibility, responsive layouts, clearer status information, and safer
-  action feedback.
-- Sentinel Lens branding, including light and dark logos, favicons, and app
-  icons.
-- A hosted MkDocs documentation site published through GitHub Pages.
-- A Make-based development workflow for environment setup, quality checks,
-  local serving, image builds, and container smoke tests.
+- Project dashboard with aggregate CPU and memory metrics, Compose dependency
+  graph, and project-aware container lifecycle controls.
+- Project Operations page with bounded recent/live logs, project-filtered Docker
+  events, short-retention history, and successful Overseer action records.
+- Configurable unhealthy, exit, restart-loop, CPU, and memory alerts with
+  cooldowns and optional validated HTTPS webhook notifications.
+- Sentinel Lens branding, responsive interfaces, and documentation.
+- Health endpoint, automated tests, dependency auditing, CodeQL, and container
+  vulnerability scanning.
+- Multi-platform AMD64/ARM64 releases with SBOMs, provenance, and attestations.
+- A canonical application version exposed by the UI and health endpoint, with
+  release guards that require matching application and Git tag versions.
 
 ### Changed
 
-- **Breaking:** The application now listens on port `8765` by default instead
-  of `8000`. Update Compose port mappings, reverse-proxy targets, health checks,
-  and `OVERSEER_PORT` overrides as needed.
-- The repository now focuses on integrating Overseer into an existing Compose
-  project and no longer ships the example application stack.
+- The application listens on port `8765`; migrate older `8000` port mappings,
+  reverse-proxy targets, and health checks.
+- Production runs one Gunicorn worker with eight threads to share operational
+  history while allowing bounded live streams and regular requests.
+- Project metrics use bounded concurrent collection rather than serial waits.
+- Dependencies use pinned Python 3.14 and `pyproject.toml` dependency groups.
+- Development uses Make commands for quality checks, serving, docs, and images.
+- Integration targets existing Compose projects; the example stack is removed.
 
-## [2.0.0] - 2026-08-22
+### Fixed
 
-### Added
+- Container action controls recover after failed requests and retain pending
+  state across renders.
+- Docker errors returned by operational endpoints omit internal exception text.
 
-- Project dashboard with aggregate CPU and memory usage.
-- Interactive Docker Compose dependency graph.
-- Dedicated service-control view and project-aware lifecycle operations.
-- Health endpoint, container smoke tests, dependency auditing, CodeQL, and
-  container vulnerability scanning.
-- Multi-platform release workflow with SBOMs, provenance, and attestations.
+### Deployment notes
 
-### Changed
+- Native authentication is not provided. Use a trusted authentication proxy and
+  TLS; Docker socket access grants administrative control of the host.
+- Operational APIs require a resolved Compose project. History is bounded and
+  in memory, and webhook delivery is best-effort.
 
-- Dependencies are managed through `pyproject.toml` dependency groups.
-- The production image now uses pinned Python 3.14 and dependency versions.
-- Release publishing is triggered by semantic-versioned GitHub Releases.
-
-### Removed
-
-- Built-in authentication. Deployments must provide authentication and TLS at
-  a trusted reverse proxy before exposing Overseer remotely.
-
-## [1.0.2] - 2026-08-17
-
-- Published release-branch images for AMD64 and ARM64 under the historical
-  `release-1.0.2` GHCR tag.
-
-## [1.0.1] - 2026-08-17
-
-- Added ARM64 support to the container build.
-
-This version was tagged but did not have a corresponding GitHub Release.
-
-## [0.1.0] - 2026-08-10
-
-- Packaged the Flask application.
-- Added initial project documentation, tests, and continuous integration.
-
-[3.0.0]: https://github.com/PyKhaled/Overseer/compare/v2.0.0...v3.0.0
-[2.0.0]: https://github.com/PyKhaled/Overseer/compare/v1.0.2...v2.0.0
-[1.0.2]: https://github.com/PyKhaled/Overseer/compare/v1.0.1...v1.0.2
-[1.0.1]: https://github.com/PyKhaled/Overseer/compare/v0.1.0...v1.0.1
-[0.1.0]: https://github.com/PyKhaled/Overseer/releases/tag/v0.1.0
+[0.2.0]: https://github.com/PyKhaled/overseer/releases/tag/v0.2.0

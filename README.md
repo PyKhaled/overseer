@@ -1,5 +1,7 @@
 # Overseer
 
+Current release: [v0.2.0](https://github.com/PyKhaled/overseer/releases/tag/v0.2.0).
+
 [![Continuous Integration](https://github.com/pykhaled/overseer/actions/workflows/ci.yml/badge.svg)](https://github.com/pykhaled/overseer/actions/workflows/ci.yml)
 [![Documentation](https://github.com/pykhaled/overseer/actions/workflows/docs.yml/badge.svg)](https://github.com/pykhaled/overseer/actions/workflows/docs.yml)
 
@@ -55,7 +57,7 @@ Add Overseer to your existing `docker-compose.yml`.
 ```yaml
 services:
   overseer:
-    image: ghcr.io/pykhaled/overseer:latest
+    image: ghcr.io/pykhaled/overseer:0.2.0
     restart: unless-stopped
     ports:
       - "8765:8765"
@@ -84,7 +86,7 @@ Use the dashboard navigation to switch between the project overview at `/`, depe
 ```yaml
 services:
   overseer:
-    image: ghcr.io/pykhaled/overseer:latest
+    image: ghcr.io/pykhaled/overseer:0.2.0
 
   api-gateway:
     image: my-api-gateway

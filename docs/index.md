@@ -12,7 +12,7 @@ Add Overseer to an existing Compose file:
 ```yaml
 services:
   overseer:
-    image: ghcr.io/pykhaled/overseer:latest
+    image: ghcr.io/pykhaled/overseer:0.2.0
     restart: unless-stopped
     ports:
       - "8765:8765"

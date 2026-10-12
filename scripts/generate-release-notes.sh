@@ -31,6 +31,7 @@ fi
 
 repository="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
 release_commit="$(git rev-parse --verify origin/main)"
+bash "$script_directory/check-release-version.sh" "$release_tag" "$release_commit"
 
 printf '# Generated notes for %s\n\n' "$release_tag"
 gh api \
