@@ -4,7 +4,7 @@
 <article class="m-article"><h2>Container image</h2><div class="b-code-block" data-code-block><pre><code>docker build -t overseer .
 docker run --rm -p 8765:8765 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  overseer</code></pre></div><p>The image runs Gunicorn on port <code class="b-inline-code">8765</code> with one worker and eight threads and exposes a health check through <code class="b-inline-code">GET /healthz</code>. Stable releases publish AMD64 and ARM64 images with exact-version, major/minor, major, commit-SHA, and <code class="b-inline-code">latest</code> tags.</p>
+  overseer</code></pre></div><p>The image runs Gunicorn on port <code class="b-inline-code">8765</code> with one worker and eight threads and exposes a health check through <code class="b-inline-code">GET /healthz</code>. Stable releases publish AMD64 and ARM64 images with exact-version, major/minor, commit-SHA, and <code class="b-inline-code">latest</code> tags. Major tags are also published for versions 1.0.0 and above.</p>
 <h2>Compose project detection</h2><p>When Overseer runs inside a Compose application, it reads the <code class="b-inline-code">com.docker.compose.project</code> label from its own container and lists other containers with the same label. Set an explicit project when automatic detection is not appropriate:</p><div class="b-code-block" data-code-block><pre><code>services:
   overseer:
     image: ghcr.io/pykhaled/overseer:0.2.0
