@@ -27,7 +27,7 @@ check and deployment smoke tests use this endpoint.
 
 ### `GET /api/dashboard`
 
-Returns project metadata, aggregate CPU and memory usage, and resource usage grouped by Compose service. CPU and memory values come from one-shot Docker stats for running containers; stopped containers do not contribute resource metrics.
+Returns project metadata, aggregate CPU and memory usage, and resource usage grouped by Compose service. CPU and memory values come from one-shot Docker stats for running containers; stopped containers do not contribute resource metrics. Sampling uses a fixed pool of four workers per application process, three-second Docker request timeouts, and an eight-second collection budget. Slow or failed samples are omitted from resource totals. `resources.measured_containers` and each service's `measured_containers` report how many running containers contributed; compare these with the corresponding running count to detect partial totals. CPU sampling retains Docker's two-cycle behavior. The collection budget covers stats sampling, not preceding container discovery and inspection.
 
 ```json
 {
