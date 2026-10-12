@@ -29,7 +29,7 @@ run: check-env ## Run the Flask development server.
 	$(VENV_PYTHON) -m overseer
 
 serve: check-env ## Run the application locally with Gunicorn.
-	$(VENV_PYTHON) -m gunicorn --bind 0.0.0.0:8765 --workers 2 overseer:app
+	$(VENV_PYTHON) -m gunicorn --bind 0.0.0.0:8765 --workers 1 --threads 8 overseer:app
 
 docs-serve: check-env ## Preview the documentation website at http://127.0.0.1:8001.
 	$(VENV_PYTHON) -m mkdocs serve --dev-addr 127.0.0.1:8001

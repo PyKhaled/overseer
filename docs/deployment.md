@@ -11,7 +11,7 @@ docker run --rm -p 8765:8765 \
   overseer
 ```
 
-The image runs Gunicorn on port `8765` with two workers and exposes a Docker
+The image runs Gunicorn on port `8765` with one worker and eight threads and exposes a Docker
 health check through `GET /healthz`. The Python base image and direct
 dependencies are pinned.
 
@@ -39,6 +39,14 @@ services:
 ```
 
 When no project can be detected, Overseer lists every container visible through the configured Docker daemon.
+
+## Operational Streams
+
+The [Operations page](operations.md) requires resolved Compose scope. Keep the
+single-worker production topology: multiple workers would split in-memory
+history and duplicate notifications. Configure proxy timeouts of at least 30
+seconds and disable buffering for SSE. Apply authentication to logs and events
+as well as the existing inspection and control endpoints.
 
 ## Docker Socket Access
 
