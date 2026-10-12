@@ -110,8 +110,8 @@ def register_operations(application, client_factory, project_resolver, metrics_r
                 "limit", min(200, settings.history_size), 1, settings.history_size
             )
             after = integer_arg("after", 0, 0, 2**63 - 1)
-        except ValueError as error:
-            return jsonify({"error": str(error)}), 400
+        except ValueError:
+            return jsonify({"error": "Invalid request parameters"}), 400
         client, project = scoped_client()
         client.close()
         return jsonify(
