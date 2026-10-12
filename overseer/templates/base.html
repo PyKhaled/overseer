@@ -210,6 +210,9 @@
           href="{{ url_for('service_controls') }}"
           {% if request.endpoint == 'service_controls' %}class="active" aria-current="page"{% endif %}
         >Containers</a>
+        <a href="{{ url_for('operations') }}"
+           {% if request.endpoint == 'operations' %}class="active" aria-current="page"{% endif %}
+        >Operations</a>
       </nav>
     </div>
   </header>

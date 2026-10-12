@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block styles %}
+  .ops-heading { display:flex; justify-content:space-between; align-items:baseline; gap:16px; margin-bottom:24px; }
+  .ops-heading h1 { margin:0 0 8px; font-size:28px; }
+  .ops-heading p, .ops-note { color:#94a3b8; font-size:13px; }
+  .ops-status { font:12px monospace; color:#38bdf8; }
+  .ops-layout { display:grid; grid-template-columns:minmax(280px, .85fr) minmax(320px, 1.15fr); gap:20px; }
+  .ops-panel { border:1px solid #334155; border-radius:10px; background:#111b2c; overflow:hidden; }
+  .ops-toolbar { padding:16px; border-bottom:1px solid #334155; display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  .ops-toolbar h2 { margin:0 auto 0 0; font-size:16px; }
+  .ops-toolbar button, .ops-toolbar select, .ops-toolbar input { color:#e2e8f0; background:#1e293b; border:1px solid #475569; border-radius:5px; padding:8px; min-height:36px; }
+  .ops-toolbar label { font-size:12px; color:#cbd5e1; }
+  .ops-toolbar input[type=number] { width:75px; }
+  .ops-toolbar input[type=search] { flex:1; min-width:140px; }
+  .ops-toolbar button { cursor:pointer; }
+  .ops-toolbar button:disabled { opacity:.45; cursor:not-allowed; }
+  #timeline { list-style:none; padding:0; margin:0; min-height:340px; max-height:540px; overflow:auto; }
+  #timeline li { padding:13px 16px; border-bottom:1px solid #243247; }
+  .event-meta { display:flex; gap:10px; color:#94a3b8; font:11px monospace; margin-bottom:5px; }
+  .event-source { color:#38bdf8; text-transform:uppercase; }
+  .event-alert .event-source { color:#fbbf24; }
+  .event-message { font-size:13px; overflow-wrap:anywhere; }
+  .event-service { color:#cbd5e1; font-weight:600; margin-right:8px; }
+  #log-output { margin:0; padding:16px; height:420px; overflow:auto; font:12px/1.65 monospace; color:#d1fae5; background:#080f1b; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .ops-note { padding:0 16px; }
+  .ops-empty { color:#94a3b8; }
+  @media(max-width:850px) { .ops-layout { grid-template-columns:1fr; } .ops-heading { align-items:flex-start; flex-direction:column; } }
+{% endblock %}
+{% block content %}
+  <div class="ops-heading">
+    <div><h1>Project operations</h1><p>Docker transitions, operator actions, alerts, and application logs.</p></div>
+    <span class="ops-status" id="operations-status" role="status">Connecting to project…</span>
+  </div>
+  <div class="ops-layout" data-log-cap="{{ log_bytes }}">
+    <section class="ops-panel" aria-labelledby="history-title">
+      <div class="ops-toolbar"><h2 id="history-title">Recent history</h2>
+        <label>Source <select id="source-filter"><option value="">All sources</option><option value="docker">Docker events</option><option value="overseer">Overseer actions</option><option value="alert">Alerts</option></select></label>
+        <button id="events-pause" type="button" aria-pressed="false">Pause</button>
+      </div>
+      <ul id="timeline" aria-label="Recent project history"><li class="ops-empty">Waiting for project events…</li></ul>
+      <p class="ops-note">Short-retention history starts when Overseer connects. Restarting Overseer clears it.</p>
+    </section>
+    <section class="ops-panel" aria-labelledby="logs-title">
+      <div class="ops-toolbar"><h2 id="logs-title">Application logs</h2>
+        <label>Container <select id="log-container"><option value="">Choose a container</option></select></label>
+      </div>
+      <div class="ops-toolbar">
+        <label>Tail <input id="log-tail" type="number" value="{{ log_tail }}" min="0" max="{{ log_tail }}"></label>
+        <label><input id="log-timestamps" type="checkbox" checked> Timestamps</label>
+        <button id="logs-live" type="button" disabled aria-pressed="false">Go live</button>
+        <button id="logs-download" type="button" disabled>Download</button>
+        <input id="log-search" type="search" aria-label="Search displayed logs" placeholder="Search displayed logs">
+      </div>
+      <pre id="log-output" tabindex="0" aria-label="Container log output">Select a container to inspect recent logs.</pre>
+      <p class="ops-note" id="log-status" role="status">Output and downloads are capped at {{ log_bytes }} bytes. Logs are not stored in event history.</p>
+    </section>
+  </div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='operations.js') }}" defer></script>
+{% endblock %}

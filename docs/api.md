@@ -116,3 +116,43 @@ On success, each returns:
 ```json
 {"error": "Docker operation failed"}
 ```
+
+## Operational Visibility
+
+All operational APIs require a resolved Compose project and fail with HTTP 503
+when scope is unavailable. They use the same trusted-network/reverse-proxy
+authentication boundary as the inspection API. See [Project Operations](operations.md)
+for retention, alerts, stream limits, webhook validation, and deployment details.
+
+### `GET /operations`
+
+Returns the event history and container logs page.
+
+### `GET /api/history?limit=200&after=0`
+
+Returns `{project, instance, status, records}`. The `instance` identifier changes
+on process restart; reset the record cursor when it changes. Records have a monotonic process-local
+`id`, `timestamp`, `project`, `source` (`docker`, `overseer`, or `alert`),
+`kind`, `container_id`, `service`, and a sanitized `message`. `after` filters
+by record ID. `limit` cannot exceed configured history capacity.
+
+### `GET /api/events?after=0`
+
+Returns Server-Sent Events: `status`, `record`, and `end`, with heartbeat
+comments. Record IDs support the `Last-Event-ID` header; an explicit `after`
+query takes precedence. On `end`, close the connection and reconnect using the
+last record ID. Stream capacity exhaustion returns HTTP 429. History is
+bounded, so a cursor older than retained records cannot guarantee gapless replay.
+
+### `GET /api/service/<container_id>/logs`
+
+Returns sanitized UTF-8 plain text for the selected project container.
+Parameters: `tail` (0 through configured maximum), `timestamps` (0 or 1,
+default 1), `since` (nonnegative Unix seconds), `download=1` (attachment), and
+`follow=1` (SSE instead of plain text). Downloads cannot follow a live stream.
+Live SSE uses `log` events with `{text, truncated}`, `unavailable` on Docker
+connection failure, and `end` on normal lease/cap completion. Reconnect with a
+`since` cursor; Docker's inclusive timestamps may replay lines. Output bytes,
+individual lines, connection duration, and simultaneous live streams are
+bounded. HTTP 404 hides containers outside the active project; invalid query
+parameters return HTTP 400. No logs are retained server-side.

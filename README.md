@@ -40,6 +40,7 @@ View:
 - Container identifiers
 - Declared service dependencies as an interactive graph
 - Project-level and per-service CPU and memory usage
+- Project-scoped live and recent logs, bounded event history, and configurable alerts
 
 ### Project-Oriented
 
@@ -74,7 +75,7 @@ Open:
 http://localhost:8765
 ```
 
-Use the dashboard navigation to switch between the project overview at `/`, dependency graph at `/dependencies`, and container controls at `/services`. Selecting a service in the graph opens its matching control card.
+Use the dashboard navigation to switch between the project overview at `/`, dependency graph at `/dependencies`, and container controls at `/services`. Selecting a service in the graph opens its matching control card. Use `/operations` for Docker events, operator actions, alerts, and bounded live logs. Operational APIs require a resolved Compose project.
 
 ---
 
@@ -195,12 +196,9 @@ source is maintained in the [`docs/`](docs/index.md) directory.
 
 Planned features include:
 
-- Live logs
-- Docker events stream
 - Project metadata
 - Multi-host support
 - User authentication
-- Alerting and notifications
 
 ---
 

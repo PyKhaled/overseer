@@ -7,6 +7,8 @@ import docker
 import requests
 from flask import Flask, jsonify, render_template, request
 
+from .operational_api import register_operations
+
 COMPOSE_PROJECT_LABEL = "com.docker.compose.project"
 COMPOSE_SERVICE_LABEL = "com.docker.compose.service"
 COMPOSE_DEPENDS_ON_LABEL = "com.docker.compose.depends_on"
@@ -27,8 +29,8 @@ def unavailable_metrics():
     }
 
 
-def get_client():
-    return docker.from_env()
+def get_client(timeout=None):
+    return docker.from_env() if timeout is None else docker.from_env(timeout=timeout)
 
 
 def get_ports(container):
@@ -357,6 +359,13 @@ def create_app(config=None):
     if config:
         application.config.update(config)
 
+    monitor = register_operations(
+        application,
+        lambda: get_client(timeout=6),
+        lambda client: get_compose_project(client),
+        lambda client: build_project_dashboard(client),
+    )
+
     @application.before_request
     def protect_state_changing_requests():
         if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
@@ -408,19 +417,52 @@ def create_app(config=None):
     @application.route("/api/service/<container_id>/restart", methods=["POST"])
     def restart_service(container_id):
         client = get_client()
-        get_project_container(client, container_id).restart()
+        container = get_project_container(client, container_id)
+        container.restart()
+        project = get_compose_project(client)
+        if isinstance(project, str) and project:
+            monitor.record(
+                project,
+                "overseer",
+                "restart",
+                container.id,
+                (container.labels or {}).get(COMPOSE_SERVICE_LABEL, container.name),
+                "Restart requested through Overseer",
+            )
         return {"success": True}
 
     @application.route("/api/service/<container_id>/stop", methods=["POST"])
     def stop_service(container_id):
         client = get_client()
-        get_project_container(client, container_id).stop()
+        container = get_project_container(client, container_id)
+        container.stop()
+        project = get_compose_project(client)
+        if isinstance(project, str) and project:
+            monitor.record(
+                project,
+                "overseer",
+                "stop",
+                container.id,
+                (container.labels or {}).get(COMPOSE_SERVICE_LABEL, container.name),
+                "Stop requested through Overseer",
+            )
         return {"success": True}
 
     @application.route("/api/service/<container_id>/start", methods=["POST"])
     def start_service(container_id):
         client = get_client()
-        get_project_container(client, container_id).start()
+        container = get_project_container(client, container_id)
+        container.start()
+        project = get_compose_project(client)
+        if isinstance(project, str) and project:
+            monitor.record(
+                project,
+                "overseer",
+                "start",
+                container.id,
+                (container.labels or {}).get(COMPOSE_SERVICE_LABEL, container.name),
+                "Start requested through Overseer",
+            )
         return {"success": True}
 
     @application.errorhandler(docker.errors.NotFound)

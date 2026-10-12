@@ -45,6 +45,7 @@ nav:
   - Development: development.md
   - Deployment and Security: deployment.md
   - HTTP API: api.md
+  - Project Operations: operations.md
   - Releasing: releasing.md
 
 plugins:
